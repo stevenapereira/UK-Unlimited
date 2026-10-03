@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import './App.css';
+import { caseStudies, faqItems, mediaSlots, testimonials, type MarketingDesign } from './contentModel';
 import { loadCms, saveCms } from './cms/cmsStore';
 import { installAnalyticsCapture, trackPageView } from './cms/analytics';
 import { CmsAdmin } from './cms/CmsAdmin';
@@ -79,7 +80,7 @@ function App() {
         <button onClick={() => navigate('insights')}>Read more →</button>
       </div>
 
-      {page === 'home' && <Home design={design} />}
+      {page === 'home' && <><Home design={design} /><GrowthSections design={design} /></>}
       {page === 'pricing' && <Pricing />}
       {page === 'insights' && <Insights />}
       {page === 'about' && <About />}
@@ -303,6 +304,122 @@ function Ticker({ items }: { items: string[] }) {
 
 function CtaBand() {
   return <section className="cta-band page-width"><span className="eyebrow">READY WHEN YOU ARE</span><h2>Bring us the hard problem.<br /><em>We will find the momentum.</em></h2><button className="primary-button">Let’s build ↗</button></section>;
+}
+
+function GrowthSections({ design }: { design: Design }) {
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
+  const [leadSent, setLeadSent] = useState(false);
+  const [newsletterSent, setNewsletterSent] = useState(false);
+  const activeMedia = mediaSlots[design as MarketingDesign];
+
+  return (
+    <>
+      <section className="growth-showcase page-width">
+        <div className="growth-heading">
+          <span className="eyebrow">PROOF / CASE STUDIES / RESULTS</span>
+          <h2>Momentum looks<br /><em>different in every business.</em></h2>
+          <p>Explore the systems, signals and decisions that create a more confident operating advantage.</p>
+        </div>
+
+        <div className="case-study-grid">
+          {caseStudies.map((study, index) => (
+            <article className="case-study-card" key={study.id}>
+              <div className={"case-study-media media-" + design + "-" + index}>
+                <span>{activeMedia[index % activeMedia.length].placeholder}</span>
+                <small>MEDIA SLOT / {design.toUpperCase()}</small>
+              </div>
+              <div className="case-study-copy">
+                <span className="eyebrow">{study.sector}</span>
+                <h3>{study.title}</h3>
+                <p>{study.summary}</p>
+                <div className="case-study-result">
+                  <strong>{study.result}</strong>
+                  <span>{study.metric}</span>
+                </div>
+                <div className="tag-row">
+                  {study.tags.map((tag) => <span key={tag}>{tag}</span>)}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="testimonial-band">
+        <div className="page-width">
+          <span className="eyebrow">THE HUMAN SIGNAL</span>
+          <div className="testimonial-grid">
+            {testimonials.map((item) => (
+              <figure className="testimonial-card" key={item.name}>
+                <blockquote>“{item.quote}”</blockquote>
+                <figcaption>
+                  <strong>{item.name}</strong>
+                  <span>{item.role} / {item.company}</span>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="faq-section page-width">
+        <div className="faq-heading">
+          <span className="eyebrow">QUESTIONS / ANSWERS</span>
+          <h2>Clear answers<br /><em>before the next move.</em></h2>
+        </div>
+
+        <div className="faq-list">
+          {faqItems.map((item, index) => (
+            <div className={openFaq === index ? 'faq-item is-open' : 'faq-item'} key={item.question}>
+              <button
+                aria-expanded={openFaq === index}
+                onClick={() => setOpenFaq(openFaq === index ? null : index)}
+              >
+                <span>{String(index + 1).padStart(2, '0')}</span>
+                <strong>{item.question}</strong>
+                <b>{openFaq === index ? '−' : '+'}</b>
+              </button>
+              {openFaq === index && <p>{item.answer}</p>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="lead-section page-width">
+        <div className="lead-copy">
+          <span className="eyebrow">READY WHEN YOU ARE</span>
+          <h2>Bring us the hard problem.<br /><em>We will find the momentum.</em></h2>
+          <p>Tell us where the friction is. We will help you find the signal, design the system and build what comes next.</p>
+        </div>
+
+        <form className="lead-form" onSubmit={(event) => { event.preventDefault(); setLeadSent(true); }}>
+          <label>Your name<input required placeholder="Stevie Pereira" /></label>
+          <label>Work email<input required type="email" placeholder="you@company.com" /></label>
+          <label>What are you building?<textarea required placeholder="Tell us about the opportunity..." /></label>
+          <button className="primary-button" type="submit">
+            {leadSent ? 'Request received ✓' : 'Start the conversation ↗'}
+          </button>
+          <small>Your details stay in this local prototype until a secure lead adapter is connected.</small>
+        </form>
+      </section>
+
+      <section className="newsletter-section page-width">
+        <div>
+          <span className="eyebrow">THE UNLIMITED EDIT</span>
+          <h2>Good ideas, delivered<br /><em>with intent.</em></h2>
+        </div>
+
+        <form onSubmit={(event) => { event.preventDefault(); setNewsletterSent(true); }}>
+          <label>Get the latest field notes
+            <div className="newsletter-input">
+              <input required type="email" placeholder="you@company.com" />
+              <button type="submit">{newsletterSent ? 'Joined ✓' : 'Subscribe ↗'}</button>
+            </div>
+          </label>
+        </form>
+      </section>
+    </>
+  );
 }
 
 function Pricing() {
