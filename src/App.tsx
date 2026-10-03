@@ -1,405 +1,349 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState } from 'react';
+import './App.css';
+import { loadCms, saveCms } from './cms/cmsStore';
+import { installAnalyticsCapture, trackPageView } from './cms/analytics';
+import { CmsAdmin } from './cms/CmsAdmin';
 
-type View = 'home' | 'pricing' | 'dashboard';
+type Design = 'signal' | 'lumen' | 'bloom' | 'prism' | 'pulse';
+type Palette = 'aurora' | 'cobalt' | 'ember' | 'mint' | 'saffron';
+type Page = 'home' | 'pricing' | 'insights' | 'about';
 
-const stats = [
-  ['Automation velocity', '84.6%', '+12.8%', 'violet'],
-  ['Hours returned', '1,284', '+18.4%', 'cyan'],
-  ['Active workflows', '42', '+6.2%', 'blue'],
-  ['Value created', '£218k', '+24.1%', 'pink'],
-] as const;
+const designs: Record<Design, string> = {
+  signal: 'Signal Lab',
+  lumen: 'Lumen Field',
+  bloom: 'Neural Bloom',
+  prism: 'Prism Engine',
+  pulse: 'Pulse Editorial',
+};
 
-const activity = [
-  ['Invoice intelligence pipeline', 'Document AI', 'Running', '2m ago', 'violet'],
-  ['Customer onboarding orchestration', 'Maestro', 'Completed', '18m ago', 'cyan'],
-  ['Revenue reconciliation', 'RPA workflow', 'Running', '31m ago', 'blue'],
-  ['Policy exception review', 'Human-in-the-loop', 'Needs review', '48m ago', 'pink'],
-] as const;
-
-function Logo({ compact = false }: { compact?: boolean }) {
-  return (
-    <span className="brand">
-      <span className="brand-mark"><b>U</b><i>K</i></span>
-      {!compact && <span className="brand-name">UK <strong>UNLIMITED</strong></span>}
-    </span>
-  );
-}
-
-function Button({
-  children,
-  onClick,
-  variant = 'primary',
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  variant?: 'primary' | 'outline' | 'ghost';
-}) {
-  return (
-    <button className={`button button--${variant}`} onClick={onClick}>
-      {children}
-    </button>
-  );
-}
+const palettes: Record<Palette, string> = {
+  aurora: 'Aurora',
+  cobalt: 'Cobalt',
+  ember: 'Ember',
+  mint: 'Mint',
+  saffron: 'Saffron',
+};
 
 function App() {
-  const [view, setView] = useState<View>('home');
+  const cmsAtStart = loadCms();
+  const [design, setDesign] = useState<Design>(cmsAtStart.design as Design);
+  const [palette, setPalette] = useState<Palette>(cmsAtStart.palette as Palette);
+  const [mode, setMode] = useState<'dark' | 'light'>(cmsAtStart.mode);
+  const [page, setPage] = useState<Page>('home');
   const [menuOpen, setMenuOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
-  const [notice, setNotice] = useState('');
+  const [adminOpen, setAdminOpen] = useState(false);
 
-  const navigate = (next: View) => {
-    setView(next);
+  useEffect(() => {
+    const stop = installAnalyticsCapture();
+    return stop;
+  }, []);
+
+  useEffect(() => {
+    saveCms({ design, palette, mode });
+    trackPageView(page, design, palette);
+  }, [design, palette, mode, page]);
+
+  const navigate = (next: Page) => {
+    setPage(next);
     setMenuOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const openDemo = () => setAuthOpen(true);
-
   return (
-    <div className="app-shell">
-      <div className="noise" />
-
-      <header className="site-header">
+    <div className={`app design-${design} palette-${palette} mode-${mode}`}>
+      <header className="header">
         <button className="logo-button" onClick={() => navigate('home')} aria-label="UK Unlimited home">
-          <Logo />
+          <Logo design={design} />
         </button>
 
-        <nav className={`nav ${menuOpen ? 'nav--open' : ''}`}>
-          <button className={view === 'home' ? 'active' : ''} onClick={() => navigate('home')}>
-            Platform
-          </button>
-          <button className={view === 'pricing' ? 'active' : ''} onClick={() => navigate('pricing')}>
-            Pricing
-          </button>
-          <button onClick={() => setNotice('Resources are coming soon.')}>
-            Resources
-          </button>
+        <nav className={menuOpen ? 'nav nav--open' : 'nav'}>
+          <button className={page === 'home' ? 'active' : ''} onClick={() => navigate('home')}>Platform</button>
+          <button className={page === 'pricing' ? 'active' : ''} onClick={() => navigate('pricing')}>Pricing</button>
+          <button className={page === 'insights' ? 'active' : ''} onClick={() => navigate('insights')}>Insights</button>
+          <button className={page === 'about' ? 'active' : ''} onClick={() => navigate('about')}>About</button>
         </nav>
 
         <div className="header-actions">
-          <button className="login-link" onClick={openDemo}>Sign in</button>
-          <Button onClick={openDemo}>Book a demo <span>↗</span></Button>
-          <button
-            className="menu-toggle"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Toggle navigation"
-            aria-expanded={menuOpen}
-          >
+          <button className="login-button" onClick={() => setAdminOpen(true)}>Sign in</button>
+          <button className="header-cta" onClick={() => setAdminOpen(true)}>Book a demo ↗</button>
+          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">
             <span />
             <span />
           </button>
         </div>
       </header>
 
-      {notice && (
-        <button className="notice" onClick={() => setNotice('')}>
-          <span>✦</span>{notice}<b>×</b>
+      <div className="announcement">
+        <span>✦</span>
+        {loadCms().banner}
+        <button onClick={() => navigate('insights')}>Read more →</button>
+      </div>
+
+      {page === 'home' && <Home design={design} />}
+      {page === 'pricing' && <Pricing />}
+      {page === 'insights' && <Insights />}
+      {page === 'about' && <About />}
+
+      <Footer navigate={navigate} openAdmin={() => setAdminOpen(true)} />
+
+      <div className="design-dock">
+        <span>DESIGN</span>
+        <select value={design} onChange={(event) => setDesign(event.target.value as Design)}>
+          {Object.entries(designs).map(([id, name]) => (
+            <option value={id} key={id}>{name}</option>
+          ))}
+        </select>
+
+        <select value={palette} onChange={(event) => setPalette(event.target.value as Palette)}>
+          {Object.entries(palettes).map(([id, name]) => (
+            <option value={id} key={id}>{name}</option>
+          ))}
+        </select>
+
+        <button onClick={() => setMode(mode === 'dark' ? 'light' : 'dark')}>
+          {mode === 'dark' ? '☼ Light' : '◐ Dark'}
         </button>
-      )}
 
-      {view === 'home' && <Home onPricing={() => navigate('pricing')} onStart={openDemo} />}
-      {view === 'pricing' && <Pricing onStart={openDemo} />}
-      {view === 'dashboard' && <Dashboard onBack={() => navigate('home')} />}
+        <button onClick={() => setAdminOpen(true)}>CMS ↗</button>
+      </div>
 
-      <footer className="site-footer">
-        <div>
-          <Logo compact />
-          <span className="footer-copy">The operating system for unlimited potential.</span>
-        </div>
-        <div className="footer-links">
-          <button onClick={() => navigate('pricing')}>Pricing</button>
-          <button onClick={() => setNotice('Privacy centre coming soon.')}>Privacy</button>
-          <button onClick={() => setNotice('Contact: hello@ukunlimited.com')}>Contact</button>
-        </div>
-        <span className="copyright">© 2026 UK Unlimited</span>
-      </footer>
-
-      {authOpen && (
-        <AuthModal
-          onClose={() => setAuthOpen(false)}
-          onContinue={() => {
-            setAuthOpen(false);
-            setView('dashboard');
-            setNotice('Demo access enabled — UiPath OAuth is not connected yet.');
-          }}
-        />
-      )}
+      {adminOpen && <AdminPreview close={() => setAdminOpen(false)} />}
     </div>
   );
 }
 
-function Home({ onPricing, onStart }: { onPricing: () => void; onStart: () => void }) {
+function Logo({ design, compact = false }: { design: Design; compact?: boolean }) {
   return (
-    <main>
-      <section className="hero page-width">
-        <div className="hero-copy">
-          <div className="eyebrow"><span className="pulse-dot" /> BUILD WITHOUT LIMITS</div>
+    <span className={`logo logo-${design} ${compact ? 'logo--compact' : ''}`}>
+      <span className="logo-mark"><b>U</b><i>K</i></span>
+      {!compact && <span className="logo-name">UK <strong>UNLIMITED</strong></span>}
+    </span>
+  );
+}
+
+function Home({ design }: { design: Design }) {
+  if (design === 'lumen') return <LumenHome />;
+  if (design === 'bloom') return <BloomHome />;
+  if (design === 'prism') return <PrismHome />;
+  if (design === 'pulse') return <PulseHome />;
+  return <SignalHome />;
+}
+
+function SignalHome() {
+  return (
+    <main className="home signal-home">
+      <section className="signal-hero page-width">
+        <div className="signal-copy">
+          <span className="eyebrow">SIGNAL LAB / 001</span>
           <h1>Turn complexity<br /><em>into momentum.</em></h1>
-          <p className="hero-lead">
-            UK Unlimited gives ambitious teams the intelligence, orchestration,
-            and automation to move at the speed of possibility.
-          </p>
-
+          <p>Intelligence, orchestration and automation for teams building what comes next.</p>
           <div className="hero-actions">
-            <Button onClick={onStart}>Start building <span>↗</span></Button>
-            <button className="text-button" onClick={onPricing}>
-              Explore plans <span>→</span>
-            </button>
+            <button className="primary-button">Start building ↗</button>
+            <button className="text-button">Explore plans →</button>
           </div>
-
-          <div className="hero-proof">
-            <span className="proof-avatars">
-              <b>AH</b><b>LM</b><b>SP</b><b>+</b>
-            </span>
-            <span>Trusted by teams<br /><strong>building what’s next.</strong></span>
-          </div>
+          <div className="proof-line"><span>42 active systems</span><span>99.98% operational</span><span>∞ potential</span></div>
         </div>
 
-        <div className="hero-visual">
-          <span className="orb orb--one" />
-          <span className="orb orb--two" />
-          <span className="orb orb--three" />
-
-          <div className="network-card">
-            <div className="network-top">
-              <span className="mini-logo">UK</span>
-              <span className="live-tag"><i /> LIVE SYSTEM</span>
-            </div>
-            <div className="network-core">
-              <span className="core-ring" />
-              <span className="core-label">UNLIMITED<br /><b>INTELLIGENCE</b></span>
-            </div>
-            <div className="network-bottom">
-              <span>42 active flows</span>
-              <span>99.98% uptime</span>
-            </div>
-          </div>
-
-          <div className="float-card float-card--top">
-            <span className="float-icon">✦</span>
-            <span><small>Automation score</small><strong>+84.6%</strong></span>
-            <b className="sparkline">╱╲╱╱╲</b>
-          </div>
-
-          <div className="float-card float-card--bottom">
-            <span className="status-check">✓</span>
-            <span><small>Value created</small><strong>£218,420</strong></span>
-            <b className="up-label">↑ 24.1%</b>
-          </div>
+        <div className="signal-visual" aria-hidden="true">
+          <div className="signal-orbit signal-orbit--wide" />
+          <div className="signal-orbit signal-orbit--tall" />
+          <div className="signal-core"><b>UK</b><small>INTELLIGENCE<br />ENGINE</small></div>
+          <span className="signal-node signal-node--one">01 / SEE</span>
+          <span className="signal-node signal-node--two">02 / MOVE</span>
+          <span className="signal-node signal-node--three">03 / COMPOUND</span>
+          <Metric label="Value created" value="£218,420" className="metric--one" />
+          <Metric label="Automation score" value="84.6%" className="metric--two" />
         </div>
       </section>
 
-      <section className="marquee">
-        <div className="marquee-track">
-          <span>ORCHESTRATE</span><i>✦</i>
-          <span>INTELLIGENT AUTOMATION</span><i>✦</i>
-          <span>CREATE MOMENTUM</span><i>✦</i>
-          <span>ORCHESTRATE</span><i>✦</i>
-        </div>
+      <Ticker items={['ORCHESTRATE', 'INTELLIGENT AUTOMATION', 'CREATE MOMENTUM']} />
+
+      <section className="feature-row page-width">
+        <Feature number="01" title="See the signal" text="Find the work that quietly holds your operation back." />
+        <Feature number="02" title="Move with intent" text="Turn insight into intelligent, repeatable action." />
+        <Feature number="03" title="Compound the gain" text="Create capacity for the ideas that come next." />
       </section>
 
-      <section className="value-section page-width">
-        <div className="section-intro">
-          <div className="eyebrow">WHY UK UNLIMITED</div>
-          <h2>More than automation.<br /><em>A new operating advantage.</em></h2>
-        </div>
-
-        <div className="value-grid">
-          <ValueCard icon="◌" title="See the signal" text="Surface the moments that matter across your operation before they become bottlenecks." />
-          <ValueCard icon="✦" title="Move with intent" text="Turn insight into action with intelligent workflows that adapt as fast as your business." />
-          <ValueCard icon="↗" title="Compound the gain" text="Every automation creates capacity for the next ambitious idea. Keep building." />
-        </div>
-      </section>
-
-      <section className="cta-section page-width">
-        <div className="cta-panel">
-          <div className="cta-glow" />
-          <div className="eyebrow">READY WHEN YOU ARE</div>
-          <h2>Your next chapter<br /><em>starts here.</em></h2>
-          <p>Bring us the hard problem. We’ll help you turn it into your unfair advantage.</p>
-          <Button onClick={onStart}>Let’s build <span>↗</span></Button>
-        </div>
-      </section>
+      <CtaBand />
     </main>
   );
 }
 
-function ValueCard({ icon, title, text }: { icon: string; title: string; text: string }) {
+function LumenHome() {
   return (
-    <article className="value-card">
-      <div className="value-icon">{icon}</div>
-      <h3>{title}</h3>
-      <p>{text}</p>
-      <span className="card-arrow">↗</span>
-    </article>
-  );
-}
+    <main className="home lumen-home">
+      <section className="lumen-hero page-width">
+        <div className="lumen-copy">
+          <span className="eyebrow">LUMEN FIELD / 002</span>
+          <h1>Make the<br /><em>invisible visible.</em></h1>
+          <p>A luminous operating layer for teams that want to see clearly, decide quickly and grow deliberately.</p>
+          <button className="primary-button">Enter the field ↗</button>
+        </div>
 
-function Pricing({ onStart }: { onStart: () => void }) {
-  return (
-    <main className="page-width page-wrap">
-      <section className="page-heading">
-        <div className="eyebrow">PRICING THAT SCALES WITH POSSIBILITY</div>
-        <h1>Choose your<br /><em>unfair advantage.</em></h1>
-        <p>Start with clarity. Scale into momentum. Every plan is designed for teams who are serious about what comes next.</p>
+        <div className="lumen-stage" aria-hidden="true">
+          <div className="light-beam light-beam--one" />
+          <div className="light-beam light-beam--two" />
+          <div className="lumen-panel lumen-panel--one"><small>LIVE SIGNAL</small><strong>+84.6%</strong><span>automation velocity</span></div>
+          <div className="lumen-panel lumen-panel--two"><small>WORKFLOW STATE</small><strong>42</strong><span>systems in motion</span></div>
+          <div className="lumen-panel lumen-panel--three"><small>VALUE CREATED</small><strong>£218k</strong><span>this quarter</span></div>
+          <div className="lumen-sun"><span>UK</span></div>
+        </div>
       </section>
 
-      <div className="pricing-grid">
-        <PriceCard
-          name="Signal"
-          price="0"
-          description="A sharper view of what’s possible."
-          items={['Automation opportunity map', 'Unlimited collaborators', 'Community playbooks']}
-          action="Explore free"
-          onClick={onStart}
-        />
-        <PriceCard
-          featured
-          name="Momentum"
-          price="1,250"
-          description="For teams ready to move with intent."
-          items={['Everything in Signal', 'Intelligent workflow orchestration', 'Dedicated implementation partner', 'Value reporting dashboard']}
-          action="Start a conversation"
-          onClick={onStart}
-        />
-        <PriceCard
-          name="Unlimited"
-          price="Custom"
-          description="Your operating advantage, amplified."
-          items={['Everything in Momentum', 'Enterprise governance & controls', 'Bespoke AI capabilities', 'Strategic growth partnership']}
-          action="Talk to an expert"
-          onClick={onStart}
-        />
-      </div>
+      <section className="lumen-grid page-width">
+        <div><span>01</span><h2>Clarity<br /><em>changes everything.</em></h2></div>
+        <div><p>When every important signal is visible, the next decision gets lighter. UK Unlimited brings your operation into focus.</p><button className="text-button">Explore the platform →</button></div>
+      </section>
+
+      <CtaBand />
     </main>
   );
 }
 
-function PriceCard({
-  name,
-  price,
-  description,
-  items,
-  action,
-  featured = false,
-  onClick,
-}: {
-  name: string;
-  price: string;
-  description: string;
-  items: string[];
-  action: string;
-  featured?: boolean;
-  onClick: () => void;
-}) {
+function BloomHome() {
   return (
-    <article className={`price-card ${featured ? 'price-card--featured' : ''}`}>
-      {featured && <div className="popular-tag">MOST POPULAR</div>}
-      <div className="price-top"><span className="plan-dot" />{name}</div>
-      <div className="price"><small>{price !== 'Custom' && '£'}</small>{price}<span>{price !== 'Custom' && '/ month'}</span></div>
-      <p>{description}</p>
-      <div className="price-rule" />
-      <ul>{items.map(item => <li key={item}><span>✓</span>{item}</li>)}</ul>
-      <Button variant={featured ? 'primary' : 'outline'} onClick={onClick}>{action} <span>↗</span></Button>
-    </article>
+    <main className="home bloom-home">
+      <section className="bloom-hero page-width">
+        <div className="bloom-copy">
+          <span className="eyebrow">NEURAL BLOOM / 003</span>
+          <h1>Grow a smarter<br /><em>way to work.</em></h1>
+          <p>Organic intelligence for teams that want technology to feel more human, adaptive and alive.</p>
+          <button className="primary-button">Find your next idea ↗</button>
+        </div>
+
+        <div className="bloom-garden" aria-hidden="true">
+          <div className="bloom-blob bloom-blob--one" />
+          <div className="bloom-blob bloom-blob--two" />
+          <div className="bloom-blob bloom-blob--three" />
+          <div className="bloom-branch branch--one" />
+          <div className="bloom-branch branch--two" />
+          <div className="bloom-node node--one">INSIGHT</div>
+          <div className="bloom-node node--two">ACTION</div>
+          <div className="bloom-node node--three">GROWTH</div>
+          <span className="bloom-word">BLOOM</span>
+        </div>
+      </section>
+
+      <section className="bloom-story page-width">
+        <span className="eyebrow">THE HUMAN LAYER</span>
+        <h2>Better systems create<br /><em>better space.</em></h2>
+        <p>Automate the repetitive, protect the thoughtful and give your people room to do the work that only they can do.</p>
+      </section>
+
+      <CtaBand />
+    </main>
   );
 }
 
-function Dashboard({ onBack }: { onBack: () => void }) {
-  const chart = [44, 51, 47, 62, 58, 71, 66, 78, 73, 88, 83, 96];
-
+function PrismHome() {
   return (
-    <main className="page-width dashboard-wrap">
-      <div className="dashboard-top">
-        <div>
-          <button className="back-link" onClick={onBack}>← Back to home</button>
-          <div className="eyebrow">GOOD MORNING, STEVIE</div>
-          <h1>Your <em>momentum</em>, in view.</h1>
+    <main className="home prism-home">
+      <section className="prism-hero page-width">
+        <div className="prism-copy">
+          <span className="eyebrow">PRISM ENGINE / 004</span>
+          <h1>Every angle<br /><em>reveals an advantage.</em></h1>
+          <p>A dimensional operating system that turns scattered information into an unmistakably clear next move.</p>
+          <button className="primary-button">Turn the prism ↗</button>
         </div>
-        <div className="dash-controls">
-          <span className="live-tag"><i /> ALL SYSTEMS OPERATIONAL</span>
-          <button className="avatar" aria-label="Profile">SP</button>
-        </div>
-      </div>
 
-      <div className="stats-grid">
-        {stats.map(([label, value, delta, tone]) => (
-          <div className={`stat-card stat-card--${tone}`} key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-            <small>↑ {delta} <b>vs last month</b></small>
-          </div>
+        <div className="prism-stack" aria-hidden="true">
+          <div className="prism-layer prism-layer--back">INSIGHT</div>
+          <div className="prism-layer prism-layer--middle">INTENT</div>
+          <div className="prism-layer prism-layer--front">MOMENTUM</div>
+          <div className="prism-light" />
+        </div>
+      </section>
+
+      <section className="prism-columns page-width">
+        <div><span>01 / CONNECT</span><h3>Bring the fragments together.</h3></div>
+        <div><span>02 / CLARIFY</span><h3>See the decision inside the data.</h3></div>
+        <div><span>03 / COMPOUND</span><h3>Make every improvement reusable.</h3></div>
+      </section>
+
+      <CtaBand />
+    </main>
+  );
+}
+
+function PulseHome() {
+  return (
+    <main className="home pulse-home">
+      <section className="pulse-hero">
+        <div className="pulse-topline"><span>UK UNLIMITED / PULSE EDITORIAL</span><span>VOL. 01 / 2026</span></div>
+        <h1>Move<br /><em>with intent.</em></h1>
+        <div className="pulse-wave" aria-hidden="true">
+          <span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span /><span />
+        </div>
+        <div className="pulse-bottom"><p>Campaign-ready systems for businesses that want to turn their next move into a visible advantage.</p><button className="primary-button">Start the conversation ↗</button></div>
+      </section>
+
+      <Ticker items={['STRATEGY', 'DESIGN', 'AUTOMATION', 'AI', 'MOMENTUM']} />
+
+      <section className="pulse-editorial page-width">
+        <div><span className="eyebrow">FIELD NOTE / 001</span><h2>The future belongs to teams that make momentum a habit.</h2></div>
+        <div><p>UK Unlimited combines bold thinking with practical automation so your business can ship the next thing before the market catches up.</p><button className="text-button">Read the field notes →</button></div>
+      </section>
+
+      <CtaBand />
+    </main>
+  );
+}
+
+function Metric({ label, value, className }: { label: string; value: string; className: string }) {
+  return <div className={`metric ${className}`}><small>{label}</small><b>{value}</b><i>↑ 24.1%</i></div>;
+}
+
+function Feature({ number, title, text }: { number: string; title: string; text: string }) {
+  return <article className="feature"><span>{number}</span><h3>{title}</h3><p>{text}</p><b>↗</b></article>;
+}
+
+function Ticker({ items }: { items: string[] }) {
+  return <div className="ticker">{[...items, ...items].map((item, index) => <span key={`${item}-${index}`}>{item} <i>✦</i></span>)}</div>;
+}
+
+function CtaBand() {
+  return <section className="cta-band page-width"><span className="eyebrow">READY WHEN YOU ARE</span><h2>Bring us the hard problem.<br /><em>We will find the momentum.</em></h2><button className="primary-button">Let’s build ↗</button></section>;
+}
+
+function Pricing() {
+  return <main className="standard page-width"><span className="eyebrow">PRICING THAT SCALES WITH POSSIBILITY</span><h1>Choose your<br /><em>unfair advantage.</em></h1><p className="intro">Pricing is CMS-editable: plans, prices, features, currencies, CTAs and visibility can all change without code edits.</p><div className="pricing-grid">{loadCms().plans.filter((plan) => plan.active).map((plan, index) => <article className={index === 1 ? 'price-card price-card--featured' : 'price-card'} key={plan.name}>{index === 1 && <span className="popular">MOST POPULAR</span>}<span className="plan-label">{plan.name}</span><h2>{plan.price}<small>{plan.interval && ` / ${plan.interval}`}</small></h2><p>{plan.description}</p><ul>{plan.features.map((feature) => <li key={feature}>✓ {feature}</li>)}</ul><button className="primary-button">{plan.cta} ↗</button></article>)}</div></main>;
+}
+
+function Insights() {
+  return (
+    <main className="standard page-width">
+      <span className="eyebrow">INSIGHTS / FIELD NOTES / PERSPECTIVES</span>
+      <h1>Ideas for teams<br /><em>building what’s next.</em></h1>
+      <div className="posts">
+        {loadCms().posts.filter((post) => post.published).map((post, index) => (
+          <article className={index === 0 ? 'post post--featured' : 'post'} key={post.id}>
+            <div className="post-art">
+              <span>{post.category}</span>
+              <b>{String(index + 1).padStart(2, '0')}</b>
+            </div>
+            <div className="post-copy">
+              <span className="eyebrow">{post.readTime} / {post.author}</span>
+              <h2>{post.title}</h2>
+              <p>{post.excerpt}</p>
+              <button className="text-button">Read article →</button>
+            </div>
+          </article>
         ))}
       </div>
-
-      <section className="dashboard-grid">
-        <div className="panel chart-panel">
-          <div className="panel-heading">
-            <div><span className="panel-kicker">SYSTEM PERFORMANCE</span><h2>Automation velocity</h2></div>
-            <button className="period-select">Last 30 days⌄</button>
-          </div>
-          <div className="bar-chart">
-            {chart.map((height, index) => <span key={index} style={{ height: `${height}%` }} />)}
-          </div>
-          <div className="chart-labels"><span>May 04</span><span>May 11</span><span>May 18</span><span>May 25</span><span>Jun 01</span></div>
-        </div>
-
-        <div className="panel health-panel">
-          <div className="panel-heading">
-            <div><span className="panel-kicker">PLATFORM HEALTH</span><h2>Everything is moving</h2></div>
-            <span className="health-score">99.98%</span>
-          </div>
-          <div className="health-ring"><div><strong>100%</strong><span>operational</span></div></div>
-          <div className="health-meta"><span><i className="dot dot--cyan" /> Workflows <b>42</b></span><span><i className="dot dot--violet" /> Integrations <b>18</b></span></div>
-        </div>
-      </section>
-
-      <section className="panel activity-panel">
-        <div className="panel-heading">
-          <div><span className="panel-kicker">LIVE ACTIVITY</span><h2>What’s happening now</h2></div>
-          <button className="text-button">View all →</button>
-        </div>
-        <div className="activity-list">
-          {activity.map(([name, type, status, time, color]) => (
-            <div className="activity-row" key={name}>
-              <span className={`activity-icon activity-icon--${color}`}>✦</span>
-              <div className="activity-name"><strong>{name}</strong><small>{type}</small></div>
-              <span className={`activity-status activity-status--${status === 'Needs review' ? 'review' : status === 'Running' ? 'running' : 'complete'}`}><i />{status}</span>
-              <span className="activity-time">{time}</span>
-              <button className="row-more" aria-label={`More options for ${name}`}>•••</button>
-            </div>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }
 
-function AuthModal({ onClose, onContinue }: { onClose: () => void; onContinue: () => void }) {
-  const [email, setEmail] = useState('');
+function About() {
+  return <main className="standard about page-width"><span className="eyebrow">ABOUT UK UNLIMITED</span><h1>We build systems that give good teams their <em>time back.</em></h1><p className="intro">UK Unlimited is a technology and transformation partner for businesses that want to turn complexity into a durable operating advantage.</p><button className="primary-button">Start a conversation ↗</button></main>;
+}
 
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    onContinue();
-  };
+function Footer({ navigate, openAdmin }: { navigate: (page: Page) => void; openAdmin: () => void }) {
+  return <footer className="footer page-width"><div><Logo design="signal" compact /><p>The operating system for unlimited potential.</p></div><div className="footer-links"><button onClick={() => navigate('pricing')}>Pricing</button><button onClick={() => navigate('insights')}>Insights</button><button onClick={openAdmin}>Admin preview</button></div><small>© 2026 UK Unlimited</small></footer>;
+}
 
-  return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div className="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-title" onClick={event => event.stopPropagation()}>
-        <button className="modal-close" onClick={onClose} aria-label="Close sign-in">×</button>
-        <Logo />
-        <div className="eyebrow">WELCOME TO THE UNLIMITED</div>
-        <h2 id="auth-title">Let’s build what’s<br /><em>next.</em></h2>
-        <p>Enter your email to access your workspace preview.</p>
-        <form onSubmit={submit}>
-          <label htmlFor="email">Work email</label>
-          <input id="email" type="email" required placeholder="you@company.com" value={email} onChange={event => setEmail(event.target.value)} />
-          <Button>Continue <span>↗</span></Button>
-        </form>
-        <small className="auth-note">Demo mode is active. Connect UiPath OAuth before using this as production authentication.</small>
-      </div>
-    </div>
-  );
+function AdminPreview({ close }: { close: () => void }) {
+  return <CmsAdmin close={close} />;
 }
 
 export default App;
