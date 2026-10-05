@@ -1,0 +1,127 @@
+.marketing-admin {
+  display: grid;
+  gap: 18px;
+}
+
+.marketing-admin-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.marketing-admin-tabs button {
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 10px;
+}
+
+.marketing-admin-tabs button.active {
+  color: var(--text);
+  border-color: var(--accent);
+  background: var(--surface-strong);
+}
+
+.marketing-editor {
+  display: grid;
+  gap: 14px;
+}
+
+.marketing-editor-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.marketing-editor-heading p {
+  max-width: 680px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.marketing-primary {
+  padding: 10px 13px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--bg);
+  background: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.marketing-card {
+  padding: 19px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.marketing-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.marketing-form-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.marketing-form-grid input,
+.marketing-form-grid textarea,
+.marketing-form-grid select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  color: var(--text);
+  background: var(--surface-strong);
+  font-size: 11px;
+}
+
+.marketing-form-grid textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.marketing-wide {
+  grid-column: 1 / -1;
+}
+
+.marketing-check {
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 7px;
+}
+
+.marketing-check input {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 800px) {
+  .marketing-editor-heading {
+    display: block;
+  }
+
+  .marketing-primary {
+    margin-top: 13px;
+  }
+
+  .marketing-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .marketing-wide {
+    grid-column: auto;
+  }
+}

@@ -13,6 +13,7 @@ import {
   type CmsState,
 } from './cmsStore';
 import './CmsAdmin.css';
+import { MarketingAdmin } from './MarketingAdmin';
 
 type Tab =
   | 'overview'
@@ -21,7 +22,8 @@ type Tab =
   | 'seo'
   | 'stats'
   | 'backups'
-  | 'chrome';
+  | 'chrome'
+  | 'marketing';
 
 export function CmsAdmin({ close }: { close: () => void }) {
   const [cms, setCms] = useState<CmsState>(loadCms);
@@ -41,6 +43,7 @@ export function CmsAdmin({ close }: { close: () => void }) {
     ['overview', 'Overview'],
     ['pricing', 'Pricing editor'],
     ['blog', 'Blog & marketing'],
+    ['marketing', 'Marketing library'],
     ['seo', 'SEO editor'],
     ['stats', 'Stats tracking'],
     ['backups', 'Backups'],
@@ -83,6 +86,7 @@ export function CmsAdmin({ close }: { close: () => void }) {
           {tab === 'overview' && <Overview cms={cms} setTab={setTab} />}
           {tab === 'pricing' && <PricingEditor cms={cms} update={update} />}
           {tab === 'blog' && <BlogEditor cms={cms} update={update} />}
+      {tab === 'marketing' && <MarketingAdmin />}
           {tab === 'seo' && <SeoEditor cms={cms} update={update} />}
           {tab === 'stats' && <StatsEditor cms={cms} update={update} />}
           {tab === 'backups' && <BackupEditor cms={cms} update={update} />}
